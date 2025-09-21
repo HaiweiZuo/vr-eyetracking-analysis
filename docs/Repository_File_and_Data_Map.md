@@ -249,3 +249,56 @@ backend/
 - **数据成果**：`data/normalized_features`、`data/module7_*`、`data/module8_*`、`data/module9_*`、`data/module10_*`
 
 > 如需对特定文件或模块深入学习，可结合本文档的路径索引与原始源码/数据进行交叉参考。
+
+---
+
+## 接手开发的优先工作清单
+
+为便于新同学快速接手后续迭代，建议按照下列路线梳理业务：
+
+1. **重建整体心智模型**
+   - 先精读 `visualization/enhanced_web_visualizer.py`，掌握 Flask 端如何装配各个蓝图、如何加载背景图与MMSE数据，并确认 `/api/*` 路由与 React 前端的耦合方式。【visualization/enhanced_web_visualizer.py†L1-L120】
+   - 通读 `config/config.py`、`config/eyetracking_analysis_config.json` 与 `config/calibration_config.json`，厘清全局常量、ROI 定义、任务映射等基础配置，确保对数据路径和参数的敏感性。【config/config.py†L1-L120】
+   - 结合本文件的“核心数据流程”章节，再回看 `analysis/eyetracking_analyzer.py`、`analysis/event_analyzer.py`、`analysis/rqa_batch_renderer.py`，弄清楚模块7/8/9的输入输出接口及共享依赖。【analysis/eyetracking_analyzer.py†L1-L160】【analysis/event_analyzer.py†L1-L160】【analysis/rqa_batch_renderer.py†L1-L120】
+
+2. **锁定关键服务模块**
+   - 对模块10链路，依次阅读 `backend/m10_service/loader.py`（模型加载与缓存）、`backend/m10_service/predict.py`（推理接口）、`backend/m10_service/data_api.py`（数据查询），再配合 `backend/m10_training` 目录下的 `dataset.py`、`trainer.py` 理解训练侧数据约束。【backend/m10_service/loader.py†L1-L120】【backend/m10_service/predict.py†L1-L120】【backend/m10_service/data_api.py†L1-L120】【backend/m10_training/trainer.py†L1-L120】
+   - 前端部分优先检查 `frontend/src/services/api.js`、`frontend/src/store/useAppStore.js` 与 `frontend/src/components/Modules/DataVisualization/DataVisualization.js`，确认与 Flask 端的接口契约及状态管理方式。【frontend/src/services/api.js†L1-L120】【frontend/src/store/useAppStore.js†L1-L80】【frontend/src/components/Modules/DataVisualization/DataVisualization.js†L1-L120】
+   - 若需要继续优化模块9数据流，结合 `docs/Module9.1_Data_Preprocessing_Documentation.md` 与 `data/module9_ml_results` 目录，定位特征工程的产物与配置继承关系。
+
+3. **制定近期交付计划**
+   - 在熟悉代码后，规划三个检查点：① 验证数据全链路跑通（从 `data_processing` 到可视化）；② 补充单元/集成测试，特别是模块10服务的 HTTP 接口（可参考 `test_m10c_service.py`）；③ 梳理剩余文档空白，例如 RQA 流程与 React 端模块说明，保持文档与实现同步。
+   - 建议在本地维护一份 `docs/` 子目录的更新日志，后续每次功能迭代都同步记录涉及的脚本/配置变更，便于团队协作。
+
+---
+
+## `start_server.py` 自检待办与修复记录
+
+### 今日待办清单（2025-09-21）
+- [x] 复现现有异常：执行 `python start_server.py` 并确认缺失 `libGL.so.1`。
+- [ ] 安装系统级 `libgl1` 运行库：通过包管理器补齐依赖。（当前受限于容器环境的 403 代理限制，阻塞中）
+- [ ] 复测启动脚本：依赖安装成功后重新启动，确认 Flask 服务在 `http://127.0.0.1:8080` 正常监听。
+
+### 现场操作记录
+1. **基线复现**：运行 `python start_server.py`，脚本捕获 `OSError: libGL.so.1` 并退出，验证现象稳定。
+2. **依赖安装尝试**：执行 `sudo apt-get update && sudo apt-get install -y libgl1`，命令被公司代理阻断返回 `403 Forbidden`，同时因为仓库索引未更新导致 `libgl1` 无法定位。当前容器无法从官方源下载该包。
+3. **后续动作**：等待运维在基础镜像中预装 `libgl1` / `libglib2.0-0`，或提供离线 `deb` 包手动安装；也可在 CI/CD 镜像构建阶段引入自托管 apt 源。
+
+### 问题诊断
+- 报错来自 Flask 可视化器在加载依赖（Matplotlib/OpenCV 等）时需要系统级的 `libGL` 图形库，容器/服务器缺失对应的共享库文件。
+- `start_server.py` 捕获异常后直接提示安装 Python 依赖，但实际需要补齐操作系统层面的动态链接库。
+
+### 处理方案（建议）
+1. **安装缺失的系统依赖**
+   - 首选方案：在具备外网访问的环境执行 `sudo apt-get update && sudo apt-get install -y libgl1 libglib2.0-0`。
+   - 受限方案：若生产环境受代理限制，需让运维通过内网镜像站预置 `libgl1`，或准备离线 `deb` 包后使用 `dpkg -i libgl1_*.deb` 安装，再执行 `sudo apt-get -f install` 修复依赖。
+
+2. **再次验证**
+   - 依赖补齐后重新执行 `python start_server.py`，确认 Flask 服务能在 `http://127.0.0.1:8080` 启动并输出导航文案。
+   - 如仍报错，可检查 `requirements.txt` 中的可视化依赖是否已 `pip install` 完成，必要时执行 `pip install -r requirements.txt` 并确认没有 ImportError。
+
+3. **可选的自动化改进**
+   - 在部署脚本或 README 中新增“系统依赖”章节，显式注明需要 `libgl1`、`libglib2.0-0` 等运行库。
+   - 为 `start_server.py` 增加更友好的提示，例如捕获 `OSError` 时直接给出 `apt-get install libgl1` 的建议，减少排查时间。
+
+待依赖安装完成并复测通过后，再结合 React 前端或调试页面 `debug_module10.html` 进行端到端功能巡检。

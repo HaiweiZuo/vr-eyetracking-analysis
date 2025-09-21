@@ -1,6 +1,6 @@
 /**
- * 简单模块加载器 - 支持全部七个模块的动态加载
- * 模块化拆分完成，支持所有模块：可视化、数据导入、RQA分析、事件分析、RQA流程、综合特征提取和数据整理模块
+ * 简单模块加载器 - 支持增强版可视化页的全部模块动态加载
+ * 模块化拆分完成，现已覆盖：可视化、数据导入、RQA分析、事件分析、RQA流程、综合特征提取、数据整理、智能分析、机器学习与Eye-Index评估模块
  */
 
 // 模块配置
@@ -46,6 +46,24 @@ const moduleConfigs = {
         filename: 'module7_data_organization.html',
         displayName: '数据整理模块',
         initFunction: 'initDataOrganization'
+    },
+    intelligentAnalysis: {
+        containerId: 'intelligentAnalysisModuleContainer',
+        filename: 'module8_intelligent_analysis.html',
+        displayName: '智能分析模块',
+        initFunction: 'initEighthModule'
+    },
+    machineLearning: {
+        containerId: 'machineLearningModuleContainer',
+        filename: 'module9_machine_learning.html',
+        displayName: '机器学习模块',
+        initFunction: 'initNinthModule'
+    },
+    eyeIndex: {
+        containerId: 'eyeIndexModuleContainer',
+        filename: 'module10_eye_index.html',
+        displayName: 'Eye-Index 模块',
+        initFunction: 'initEyeIndexModule'
     }
 };
 
@@ -145,9 +163,21 @@ function loadDataOrganizationModule() {
     return loadModule('dataOrganization');
 }
 
+function loadIntelligentAnalysisModule() {
+    return loadModule('intelligentAnalysis');
+}
+
+function loadMachineLearningModule() {
+    return loadModule('machineLearning');
+}
+
+function loadEyeIndexModule() {
+    return loadModule('eyeIndex');
+}
+
 // 页面加载完成后自动加载已拆分的模块
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 简单模块加载器初始化（支持全部七个模块）');
+    console.log('🚀 简单模块加载器初始化（支持全部十个模块）');
     
     // 延迟加载，让页面先渲染完成
     setTimeout(() => {
@@ -184,6 +214,21 @@ document.addEventListener('DOMContentLoaded', function() {
         // 加载第七个模块（数据整理）
         if (document.getElementById('dataOrganizationModuleContainer')) {
             loadModule('dataOrganization');
+        }
+
+        // 加载第八个模块（智能分析）
+        if (document.getElementById('intelligentAnalysisModuleContainer')) {
+            loadModule('intelligentAnalysis');
+        }
+
+        // 加载第九个模块（机器学习）
+        if (document.getElementById('machineLearningModuleContainer')) {
+            loadModule('machineLearning');
+        }
+
+        // 加载第十个模块（Eye-Index评估）
+        if (document.getElementById('eyeIndexModuleContainer')) {
+            loadModule('eyeIndex');
         }
     }, 500);
 });

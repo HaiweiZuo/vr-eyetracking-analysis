@@ -134,11 +134,11 @@ data/
 | `rqa_pipeline_api.py` | 实现参数化RQA五步流程的API，与 `data/rqa_pipeline_results` 目录同步。 |
 | `real_data_integration_api.py` | 模块7数据整合的接口实现。 |
 | `module10_eye_index/` | 模块10相关模板与静态资源。 |
-| `templates/`、`static/` | 存放增强版前端页面模板 `enhanced_index.html` 及静态资源。
+| `templates/`、`static/` | 存放增强版前端页面模板 `enhanced_index.html` 及拆分后的静态样式与脚本资源。
 
 #### 模板层结构与交互 `visualization/templates/`
 - **`index.html`（基础版可视化仪表盘）**：采用Bootstrap卡片划分研究组、数据列表、统计信息与右侧可视化/ROI表格区域，界面元素集中在一个页面内便于快速排查后端接口输出。【F:visualization/templates/index.html†L1-L309】内联脚本通过`/api/groups`、`/api/group/<type>/data`与`/api/statistics/<type>`等端点拉取元数据，点击数据项后请求`/api/visualize/<group>/<data_id>`生成图像，同时渲染ROI统计表、启用下载/刷新按钮并处理错误提示，是最简化的可视化调试入口。【F:visualization/templates/index.html†L317-L594】
-- **`enhanced_index.html`（增强版多模块入口）**：顶层包含重启按钮、语言切换与数据计数的横幅，以及可折叠侧边导航将可视化、数据导入、RQA分析/流程、事件分析、综合特征提取及模块7~10分区在同一页组织，每个导航项对应的内容容器都先显示占位符后再动态加载`modules/module*.html`片段。【F:visualization/templates/enhanced_index.html†L3560-L3680】底部引入`simple-module-loader.js`后维护中英双语字典，并监听自定义的`moduleLoaded`事件，在对应片段装载完成后调用`initVisualization`、`initDataImport`、`initRQAPipeline`等模块初始化钩子，保持多模块间的懒加载和状态同步。【F:visualization/templates/enhanced_index.html†L5832-L7390】侧边切换函数会按需显示/隐藏各模块视图，保证旧版容器与新功能共存且互斥展示。【F:visualization/templates/enhanced_index.html†L8045-L8104】模块10导航触发时还会按需插入`/static/js/eye_index.js`脚本，并串联`initModule10A/10C/10D`等函数初始化深度学习训练、评估和数据浏览界面，是整个平台最复杂的模板片段。【F:visualization/templates/enhanced_index.html†L14909-L14997】
+- **`enhanced_index.html`（增强版多模块入口）**：模板已精简为头部、侧边导航与十个模块占位容器的骨架结构，样式与脚本统一移动到 `/static/css/enhanced_index.css` 与 `/static/js/enhanced_index_core.js`、`enhanced_modules.js` 维护。【F:visualization/templates/enhanced_index.html†L1-L172】【F:visualization/static/css/enhanced_index.css†L1-L18】【F:visualization/static/js/enhanced_index_core.js†L1420-L1583】【F:visualization/static/js/enhanced_modules.js†L1-L40】`moduleLoaded` 事件继续驱动各模块初始化，现覆盖数据整理、智能分析、机器学习与Eye-Index等新增占位。【F:visualization/static/js/enhanced_index_core.js†L1535-L1583】所有模块内容拆分为独立HTML片段存放在 `/static/modules/`，包括新整理出的 `module7_data_organization.html`、`module8_intelligent_analysis.html`、`module9_machine_learning.html` 与 `module10_eye_index.html`，避免单文件膨胀。【F:visualization/static/modules/module7_data_organization.html†L1-L20】【F:visualization/static/modules/module10_eye_index.html†L1-L20】`simple-module-loader.js` 扩展到十个入口，页面加载后会按容器依次装载片段并调用对应的初始化函数。【F:visualization/static/js/simple-module-loader.js†L1-L234】模块10导航触发后统一由 `initEyeIndexModule` 接管深度学习训练与评估流程，延续原有功能链路。【F:visualization/static/js/enhanced_index_core.js†L1572-L1583】
 
 ### 6.2 模块10后端 `backend/`
 ```
@@ -249,3 +249,56 @@ backend/
 - **数据成果**：`data/normalized_features`、`data/module7_*`、`data/module8_*`、`data/module9_*`、`data/module10_*`
 
 > 如需对特定文件或模块深入学习，可结合本文档的路径索引与原始源码/数据进行交叉参考。
+
+---
+
+## 接手开发的优先工作清单
+
+为便于新同学快速接手后续迭代，建议按照下列路线梳理业务：
+
+1. **重建整体心智模型**
+   - 先精读 `visualization/enhanced_web_visualizer.py`，掌握 Flask 端如何装配各个蓝图、如何加载背景图与MMSE数据，并确认 `/api/*` 路由与 React 前端的耦合方式。【visualization/enhanced_web_visualizer.py†L1-L120】
+   - 通读 `config/config.py`、`config/eyetracking_analysis_config.json` 与 `config/calibration_config.json`，厘清全局常量、ROI 定义、任务映射等基础配置，确保对数据路径和参数的敏感性。【config/config.py†L1-L120】
+   - 结合本文件的“核心数据流程”章节，再回看 `analysis/eyetracking_analyzer.py`、`analysis/event_analyzer.py`、`analysis/rqa_batch_renderer.py`，弄清楚模块7/8/9的输入输出接口及共享依赖。【analysis/eyetracking_analyzer.py†L1-L160】【analysis/event_analyzer.py†L1-L160】【analysis/rqa_batch_renderer.py†L1-L120】
+
+2. **锁定关键服务模块**
+   - 对模块10链路，依次阅读 `backend/m10_service/loader.py`（模型加载与缓存）、`backend/m10_service/predict.py`（推理接口）、`backend/m10_service/data_api.py`（数据查询），再配合 `backend/m10_training` 目录下的 `dataset.py`、`trainer.py` 理解训练侧数据约束。【backend/m10_service/loader.py†L1-L120】【backend/m10_service/predict.py†L1-L120】【backend/m10_service/data_api.py†L1-L120】【backend/m10_training/trainer.py†L1-L120】
+   - 前端部分优先检查 `frontend/src/services/api.js`、`frontend/src/store/useAppStore.js` 与 `frontend/src/components/Modules/DataVisualization/DataVisualization.js`，确认与 Flask 端的接口契约及状态管理方式。【frontend/src/services/api.js†L1-L120】【frontend/src/store/useAppStore.js†L1-L80】【frontend/src/components/Modules/DataVisualization/DataVisualization.js†L1-L120】
+   - 若需要继续优化模块9数据流，结合 `docs/Module9.1_Data_Preprocessing_Documentation.md` 与 `data/module9_ml_results` 目录，定位特征工程的产物与配置继承关系。
+
+3. **制定近期交付计划**
+   - 在熟悉代码后，规划三个检查点：① 验证数据全链路跑通（从 `data_processing` 到可视化）；② 补充单元/集成测试，特别是模块10服务的 HTTP 接口（可参考 `test_m10c_service.py`）；③ 梳理剩余文档空白，例如 RQA 流程与 React 端模块说明，保持文档与实现同步。
+   - 建议在本地维护一份 `docs/` 子目录的更新日志，后续每次功能迭代都同步记录涉及的脚本/配置变更，便于团队协作。
+
+---
+
+## `start_server.py` 自检待办与修复记录
+
+### 今日待办清单（2025-09-21）
+- [x] 复现现有异常：执行 `python start_server.py` 并确认缺失 `libGL.so.1`。
+- [ ] 安装系统级 `libgl1` 运行库：通过包管理器补齐依赖。（当前受限于容器环境的 403 代理限制，阻塞中）
+- [ ] 复测启动脚本：依赖安装成功后重新启动，确认 Flask 服务在 `http://127.0.0.1:8080` 正常监听。
+
+### 现场操作记录
+1. **基线复现**：运行 `python start_server.py`，脚本捕获 `OSError: libGL.so.1` 并退出，验证现象稳定。
+2. **依赖安装尝试**：执行 `sudo apt-get update && sudo apt-get install -y libgl1`，命令被公司代理阻断返回 `403 Forbidden`，同时因为仓库索引未更新导致 `libgl1` 无法定位。当前容器无法从官方源下载该包。
+3. **后续动作**：等待运维在基础镜像中预装 `libgl1` / `libglib2.0-0`，或提供离线 `deb` 包手动安装；也可在 CI/CD 镜像构建阶段引入自托管 apt 源。
+
+### 问题诊断
+- 报错来自 Flask 可视化器在加载依赖（Matplotlib/OpenCV 等）时需要系统级的 `libGL` 图形库，容器/服务器缺失对应的共享库文件。
+- `start_server.py` 捕获异常后直接提示安装 Python 依赖，但实际需要补齐操作系统层面的动态链接库。
+
+### 处理方案（建议）
+1. **安装缺失的系统依赖**
+   - 首选方案：在具备外网访问的环境执行 `sudo apt-get update && sudo apt-get install -y libgl1 libglib2.0-0`。
+   - 受限方案：若生产环境受代理限制，需让运维通过内网镜像站预置 `libgl1`，或准备离线 `deb` 包后使用 `dpkg -i libgl1_*.deb` 安装，再执行 `sudo apt-get -f install` 修复依赖。
+
+2. **再次验证**
+   - 依赖补齐后重新执行 `python start_server.py`，确认 Flask 服务能在 `http://127.0.0.1:8080` 启动并输出导航文案。
+   - 如仍报错，可检查 `requirements.txt` 中的可视化依赖是否已 `pip install` 完成，必要时执行 `pip install -r requirements.txt` 并确认没有 ImportError。
+
+3. **可选的自动化改进**
+   - 在部署脚本或 README 中新增“系统依赖”章节，显式注明需要 `libgl1`、`libglib2.0-0` 等运行库。
+   - 为 `start_server.py` 增加更友好的提示，例如捕获 `OSError` 时直接给出 `apt-get install libgl1` 的建议，减少排查时间。
+
+待依赖安装完成并复测通过后，再结合 React 前端或调试页面 `debug_module10.html` 进行端到端功能巡检。

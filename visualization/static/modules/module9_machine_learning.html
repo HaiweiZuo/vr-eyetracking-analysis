@@ -1,0 +1,606 @@
+    <!-- 第九模块 - 机器学习预测模块 -->
+    <div class="ninth-module-view" id="ninthModuleView" style="display: none;">
+        <div class="container-fluid" style="min-height: 800px; padding: 20px;">
+            <!-- 页面标题 -->
+            <div class="row mb-4">
+                <div class="col-12 text-center">
+                    <h2 style="color: #28a745;"><i class="fas fa-brain"></i> <span data-lang-key="machineLearningTitle">机器学习预测分析</span></h2>
+                    <p class="text-muted" data-lang-key="machineLearningSubtitle">基于眼动特征的MMSE子分数智能预测系统</p>
+                </div>
+            </div>
+
+            <!-- 子模块9.1: 数据预处理与整合 -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-database"></i> <span data-lang-key="dataPreprocessingTitle">子模块9.1 - 数据预处理与整合</span></h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- 配置选择区域 -->
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label for="mlRqaConfigSelect" class="form-label"><span data-lang-key="selectRqaConfig">选择RQA配置</span></label>
+                                    <select class="form-select" id="mlRqaConfigSelect">
+                                        <option value=""><span data-lang-key="loadingConfigs">加载中...</span></option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label"><span data-lang-key="dataStatus">数据状态</span></label>
+                                    <div class="d-flex flex-column gap-1">
+                                        <span id="mlDataStatus" class="badge bg-secondary"><span data-lang-key="notProcessed">未处理</span></span>
+                                        <small class="text-muted" id="mlDataStatusDetail">选择RQA配置开始处理</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label"><span data-lang-key="actions">操作</span></label>
+                                    <div class="d-flex gap-2">
+                                        <button class="btn btn-primary" id="preprocessDataBtn" onclick="startDataPreprocessing()" disabled>
+                                            <i class="fas fa-play"></i> <span data-lang-key="startPreprocessing">开始预处理</span>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" id="refreshDataBtn" onclick="refreshMLData()" disabled>
+                                            <i class="fas fa-refresh"></i> <span data-lang-key="refreshData">刷新</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 特征方向一致性校正配置 -->
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">
+                                                <i class="fas fa-arrows-alt-v text-primary"></i> 
+                                                <span data-lang-key="featureDirectionCorrection">特征方向一致性校正</span>
+                                                <span class="badge bg-info ms-2">推荐</span>
+                                            </h6>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" id="enableFeatureCorrection" checked>
+                                                        <label class="form-check-label" for="enableFeatureCorrection">
+                                                            <strong><span data-lang-key="enableDirectionCorrection">启用方向一致性校正</span></strong>
+                                                        </label>
+                                                    </div>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-info-circle text-info"></i> 
+                                                        <span data-lang-key="directionCorrectionHint">
+                                                            统一所有特征为"数值越高=认知越好"方向
+                                                        </span>
+                                                    </small>
+                                                </div>
+                                                
+                                                <div class="col-md-6">
+                                                    <div class="small text-secondary">
+                                                        <strong><span data-lang-key="transformMethods">变换方法</span>:</strong><br>
+                                                        • <span class="text-danger">游戏时长</span>: 倒数变换 (1/x)<br>
+                                                        • <span class="text-danger">ROI停留时长</span>: 负号变换 (-x)<br>
+                                                        • <span class="text-success">RQA参数</span>: 保持不变
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 验证状态 -->
+                                            <div class="row mt-2" id="directionValidationStatus" style="display: none;">
+                                                <div class="col-12">
+                                                    <div class="alert alert-info alert-sm mb-0" role="alert">
+                                                        <small>
+                                                            <i class="fas fa-check-circle text-success"></i>
+                                                            <span id="validationMessage">所有特征已统一为正相关方向</span>
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 数据统计展示区域 -->
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-primary" id="mlTotalSamples">-</h4>
+                                        <small class="text-muted"><span data-lang-key="totalSamples">总样本数</span></small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-success" id="mlTrainSamples">-</h4>
+                                        <small class="text-muted"><span data-lang-key="trainSamples">训练集样本</span></small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-info" id="mlTestSamples">-</h4>
+                                        <small class="text-muted"><span data-lang-key="testSamples">测试集样本</span></small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 bg-light rounded">
+                                        <h4 class="text-warning" id="mlFeatureCount">-</h4>
+                                        <small class="text-muted"><span data-lang-key="featureCount">特征数量</span></small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 处理日志区域 -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0"><i class="fas fa-terminal"></i> <span data-lang-key="processingLog">处理日志</span></h6>
+                                        </div>
+                                        <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                            <pre id="mlProcessingLog" class="mb-0" style="font-size: 12px; background: #f8f9fa; border: none;"><span data-lang-key="noLogYet">暂无日志...</span></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 子模块9.2: 模型训练 (暂时隐藏) -->
+            <div class="row mb-4" id="modelTrainingSection" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-cogs"></i> <span data-lang-key="modelTrainingTitle">子模块9.2 - MLP模型训练</span></h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- 训练配置区域 -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-sliders-h"></i> <span data-lang-key="trainingConfig">训练配置</span></h6>
+                                    
+                                    <!-- 模型预设配置 -->
+                                    <div class="form-group mb-3">
+                                        <label class="form-label"><span data-lang-key="modelPreset">模型预设</span></label>
+                                        <select id="modelPresetSelect" class="form-control" onchange="onModelPresetChange()">
+                                            <option value="simple">Simple (32) - 防过拟合推荐</option>
+                                            <option value="moderate">Moderate (64,32) - 中等复杂度</option>
+                                            <option value="complex">Complex (64,32,16) - 需大样本</option>
+                                            <option value="custom">Custom - 自定义配置</option>
+                                        </select>
+                                        <small class="text-muted"><span data-lang-key="modelPresetHint">专家建议: Simple模型适合当前60样本数据集</span></small>
+                                    </div>
+                                    
+                                    <!-- 自定义隐藏层配置 -->
+                                    <div class="form-group mb-3" id="customLayersGroup" style="display: none;">
+                                        <label class="form-label"><span data-lang-key="hiddenLayers">隐藏层配置</span></label>
+                                        <input type="text" id="hiddenLayersConfig" class="form-control" value="32" 
+                                               placeholder="例如: 32 或 64,32">
+                                        <small class="text-muted"><span data-lang-key="hiddenLayersHint">用逗号分隔，例如32表示单层，64,32表示双层</span></small>
+                                    </div>
+                                    
+                                    <!-- 训练方法选择（专家优化） -->
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-chart-line"></i> 
+                                            <span data-lang-key="trainingMethod">训练方法</span>
+                                            <span class="badge bg-warning text-dark ms-2">专家推荐</span>
+                                        </label>
+                                        <select id="trainingMethodSelect" class="form-control" onchange="onTrainingMethodChange()">
+                                            <option value="single">单模型训练 (Standard)</option>
+                                            <option value="cv" selected>5-fold交叉验证 (Expert Recommended)</option>
+                                        </select>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle text-info"></i>
+                                            <span data-lang-key="trainingMethodHint">专家建议: CV能显著提升小样本模型性能和稳定性</span>
+                                        </small>
+                                    </div>
+                                    
+                                    <!-- CV参数配置 -->
+                                    <div id="cvParamsGroup" class="form-group mb-3">
+                                        <label class="form-label">
+                                            <span data-lang-key="cvParams">交叉验证参数</span>
+                                        </label>
+                                        <div class="row">
+                                            <div class="col-4">
+                                                <label class="form-label small">折叠数</label>
+                                                <input type="number" id="cvFoldsConfig" class="form-control form-control-sm" value="5" min="3" max="10" readonly>
+                                            </div>
+                                            <div class="col-4">
+                                                <label class="form-label small">早停轮数</label>
+                                                <input type="number" id="cvPatienceConfig" class="form-control form-control-sm" value="10" min="5" max="20">
+                                            </div>
+                                            <div class="col-4">
+                                                <label class="form-label small">最大轮数</label>
+                                                <input type="number" id="cvEpochsConfig" class="form-control form-control-sm" value="200" min="50" max="500">
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-6">
+                                                <label class="form-label small">CV Dropout</label>
+                                                <input type="number" id="cvDropoutConfig" class="form-control form-control-sm" value="0.35" min="0.1" max="0.8" step="0.05">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">CV L2正则</label>
+                                                <input type="number" id="cvL2Config" class="form-control form-control-sm" value="0.001" min="0.0001" max="0.01" step="0.0001">
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-chart-bar text-success"></i>
+                                            专家优化: 5折CV + 早停 + 强正则化 + 标签归一化 + 10特征精选，针对60样本优化
+                                        </small>
+                                        <div class="alert alert-info mt-2 mb-0">
+                                            <i class="fas fa-info-circle"></i>
+                                            <strong>标签归一化:</strong> MMSE子分数归一化到[0,1]区间训练，显著提升多输出回归效果
+                                        </div>
+                                        <div class="alert alert-success mt-2 mb-0">
+                                            <i class="fas fa-filter"></i>
+                                            <strong>专家特征选择:</strong> 精选10个核心眼动特征
+                                            <br><small>• 4个基础指标: game_duration, KW_ROI_time, INST_ROI_time, BG_ROI_time</small>
+                                            <br><small>• 6个RQA参数: RR_1D, DET_1D, ENT_1D, RR_2D, DET_2D, ENT_2D</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 正则化配置 -->
+                                    <div class="form-group mb-3" id="regularizationGroup">
+                                        <label class="form-label"><span data-lang-key="regularization">正则化设置</span></label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="useDropout" checked>
+                                            <label class="form-check-label" for="useDropout">
+                                                <span data-lang-key="useDropout">使用Dropout</span>
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="useL2Reg" checked>
+                                            <label class="form-check-label" for="useL2Reg">
+                                                <span data-lang-key="useL2Reg">使用L2正则化</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 正则化参数 -->
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="form-group mb-3">
+                                                <label class="form-label"><span data-lang-key="dropoutRate">Dropout比率</span></label>
+                                                <input type="number" id="dropoutRateConfig" class="form-control" value="0.3" min="0.1" max="0.8" step="0.1">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="form-group mb-3">
+                                                <label class="form-label"><span data-lang-key="l2Lambda">L2正则化系数</span></label>
+                                                <input type="number" id="l2LambdaConfig" class="form-control" value="0.01" min="0.001" max="0.1" step="0.001">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="form-group mb-3">
+                                                <label class="form-label"><span data-lang-key="epochs">训练轮数</span></label>
+                                                <input type="number" id="epochsConfig" class="form-control" value="100" min="1" max="1000">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="form-group mb-3">
+                                                <label class="form-label"><span data-lang-key="batchSize">批大小</span></label>
+                                                <input type="number" id="batchSizeConfig" class="form-control" value="8" min="4" max="32">
+                                                <small class="text-muted">专家建议: 8最适合48个训练样本</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="form-group mb-3">
+                                                <label class="form-label"><span data-lang-key="learningRate">学习率</span></label>
+                                                <input type="number" id="learningRateConfig" class="form-control" value="0.001" min="0.0001" max="0.1" step="0.0001">
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="form-group mb-3">
+                                                <label class="form-label"><span data-lang-key="validationSplit">验证集比例</span></label>
+                                                <input type="number" id="validationSplitConfig" class="form-control" value="0.2" min="0.1" max="0.3" step="0.05">
+                                                <small class="text-muted">专家建议: 0.2 (约10个样本)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label class="form-label"><span data-lang-key="earlyStopping">早停轮数</span></label>
+                                        <input type="number" id="earlyStoppingConfig" class="form-control" value="15" min="5" max="50">
+                                        <small class="text-muted"><span data-lang-key="earlyStoppingHint">验证损失多少轮不改善后停止训练</span></small>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-chart-line"></i> <span data-lang-key="trainingStatus">训练状态</span></h6>
+                                    
+                                    <!-- 状态显示 -->
+                                    <div class="mb-3">
+                                        <span class="badge badge-secondary" id="mlTrainingStatus"><span data-lang-key="waitingToTrain">等待训练</span></span>
+                                        <span class="ml-2" id="mlTrainingDetail">-</span>
+                                    </div>
+                                    
+                                    <!-- 统计信息 -->
+                                    <div class="row text-center">
+                                        <div class="col-6 mb-2">
+                                            <div class="bg-light p-2 rounded">
+                                                <strong class="text-primary" id="mlCurrentEpoch">-</strong><br>
+                                                <small class="text-muted"><span data-lang-key="currentEpoch">当前轮数</span></small>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <div class="bg-light p-2 rounded">
+                                                <strong class="text-info" id="mlTrainingLoss">-</strong><br>
+                                                <small class="text-muted"><span data-lang-key="trainingLoss">训练损失</span></small>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <div class="bg-light p-2 rounded">
+                                                <strong class="text-warning" id="mlValidationLoss">-</strong><br>
+                                                <small class="text-muted"><span data-lang-key="validationLoss">验证损失</span></small>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <div class="bg-light p-2 rounded">
+                                                <strong class="text-success" id="mlTestMAE">-</strong><br>
+                                                <small class="text-muted"><span data-lang-key="testMAE">测试MAE</span></small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 训练操作按钮 -->
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <button class="btn btn-success" id="startTrainingBtn" onclick="startTraining()">
+                                        <i class="fas fa-play"></i> <span data-lang-key="startTraining">开始训练</span>
+                                    </button>
+                                    <button class="btn btn-warning ml-2" id="resetTrainingBtn" onclick="resetTrainingUI()">
+                                        <i class="fas fa-redo"></i> <span data-lang-key="resetTraining">重置</span>
+                                    </button>
+                                    <button class="btn btn-info ml-2" id="viewTrainingLogBtn" onclick="toggleTrainingLog()">
+                                        <i class="fas fa-eye"></i> <span data-lang-key="viewTrainingLog">查看日志</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                                                            <!-- 训练日志区域 (可折叠) -->
+                                <div class="row" id="trainingLogSection" style="display: none;">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="mb-0"><i class="fas fa-terminal"></i> <span data-lang-key="trainingLog">训练日志</span></h6>
+                                            </div>
+                                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                                <pre id="mlTrainingLog" class="mb-0" style="font-size: 12px; background: #f8f9fa; border: none;"><span data-lang-key="noTrainingLogYet">暂无训练日志...</span></pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 测试集评估结果表格 -->
+                
+                
+                <!-- CV结果展示区域（专家优化版） -->
+                <div class="row mt-3" id="cvResultsSection" style="display: none;">
+                    <div class="col-12">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-line"></i> 
+                                    <span data-lang-key="cvResults">5-fold交叉验证结果</span>
+                                    <span class="badge bg-warning text-dark ms-2">专家优化</span>
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <!-- 集成性能指标 -->
+                                <div class="row mb-3">
+                                    <div class="col-md-3">
+                                        <div class="text-center p-2 bg-primary bg-opacity-10 rounded">
+                                            <h5 class="text-primary mb-1" id="cvEnsembleRMSE">-</h5>
+                                            <small class="text-muted">集成 RMSE</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-2 bg-success bg-opacity-10 rounded">
+                                            <h5 class="text-success mb-1" id="cvEnsembleMAE">-</h5>
+                                            <small class="text-muted">集成 MAE</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-2 bg-info bg-opacity-10 rounded">
+                                            <h5 class="text-info mb-1" id="cvEnsembleR2">-</h5>
+                                            <small class="text-muted">集成 R²</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-2 bg-warning bg-opacity-10 rounded">
+                                            <h5 class="text-warning mb-1" id="cvMeanRMSE">-</h5>
+                                            <small class="text-muted">CV RMSE ± STD</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 折叠详细结果 -->
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <h6><i class="fas fa-table"></i> 各折叠详细结果</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>折叠</th>
+                                                        <th>验证 RMSE</th>
+                                                        <th>验证 MAE</th>
+                                                        <th>验证 R²</th>
+                                                        <th>最佳轮次</th>
+                                                        <th>训练损失</th>
+                                                        <th>验证损失</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="cvFoldResults">
+                                                    <!-- 动态填充 -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 详细子分数性能 -->
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <h6><i class="fas fa-chart-bar"></i> 集成模型各子分数性能</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-bordered">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>MMSE子分数</th>
+                                                        <th>RMSE</th>
+                                                        <th>MAE</th>
+                                                        <th>R²</th>
+                                                        <th>相对误差</th>
+                                                        <th>性能等级</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="cvDetailedResults">
+                                                    <!-- 动态填充 -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- CV训练进度 -->
+                                <div class="row" id="cvTrainingProgress" style="display: none;">
+                                    <div class="col-12">
+                                        <h6><i class="fas fa-spinner fa-spin"></i> 训练进度</h6>
+                                        <div class="progress mb-2">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                 id="cvProgressBar" role="progressbar" style="width: 0%">
+                                                <span id="cvProgressText">0/5 折叠完成</span>
+                                            </div>
+                                        </div>
+                                        <div class="small text-muted" id="cvCurrentStatus">正在初始化...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3" id="testEvaluationSection" style="display: none;">
+                                    <div class="col-12">
+                                        <div class="card">
+                                            <div class="card-header bg-info text-white">
+                                                <h6 class="mb-0"><i class="fas fa-chart-bar"></i> <span data-lang-key="testEvaluationResults">测试集评估结果</span></h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <!-- 整体性能指标 -->
+                                                <div class="row mb-3">
+                                                    <div class="col-12">
+                                                        <h6><i class="fas fa-bullseye"></i> <span data-lang-key="overallPerformance">整体性能指标</span></h6>
+                                                        <div class="row text-center">
+                                                            <div class="col-3">
+                                                                <div class="bg-light p-2 rounded">
+                                                                    <strong class="text-primary" id="overallMSE">-</strong><br>
+                                                                    <small class="text-muted">TEST MSE</small>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-3">
+                                                                <div class="bg-light p-2 rounded">
+                                                                    <strong class="text-info" id="overallRMSE">-</strong><br>
+                                                                    <small class="text-muted">TEST RMSE</small>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-3">
+                                                                <div class="bg-light p-2 rounded">
+                                                                    <strong class="text-warning" id="overallMAE">-</strong><br>
+                                                                    <small class="text-muted">TEST MAE</small>
+                                                                </div>
+                                                            </div>
+                                                            <div class="col-3">
+                                                                <div class="bg-light p-2 rounded">
+                                                                    <strong class="text-success" id="overallR2">-</strong><br>
+                                                                    <small class="text-muted">TEST R²</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- 各子分数详细表格 -->
+                                                <div class="row">
+                                                    <div class="col-12">
+                                                        <h6><i class="fas fa-table"></i> <span data-lang-key="subscoreDetails">各MMSE子分数详细性能</span></h6>
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm table-hover">
+                                                                <thead class="table-dark">
+                                                                    <tr>
+                                                                        <th><span data-lang-key="subscoreName">子分数</span></th>
+                                                                        <th><span data-lang-key="maxScore">满分</span></th>
+                                                                        <th>MAE</th>
+                                                                        <th><span data-lang-key="relativeError">相对误差</span></th>
+                                                                        <th>RMSE</th>
+                                                                        <th>R²</th>
+                                                                        <th><span data-lang-key="performance">性能评级</span></th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody id="subscoreTableBody">
+                                                                    <!-- 动态生成的子分数行 -->
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- 性能分级和泛化分析 -->
+                                                <div class="row mt-3">
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light">
+                                                            <div class="card-body text-center">
+                                                                <h6><i class="fas fa-trophy"></i> <span data-lang-key="performanceGrade">性能分级评估</span></h6>
+                                                                <h4 id="performanceGradeDisplay" class="mb-2">-</h4>
+                                                                <p class="mb-1"><strong><span data-lang-key="avgRelativeError">平均相对误差</span>:</strong> <span id="avgRelativeErrorDisplay">-</span></p>
+                                                                <p class="mb-0"><strong><span data-lang-key="avgR2">平均R²</span>:</strong> <span id="avgR2Display">-</span></p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card bg-light">
+                                                            <div class="card-body">
+                                                                <h6><i class="fas fa-chart-line"></i> <span data-lang-key="generalizationAnalysis">泛化分析</span></h6>
+                                                                <p class="mb-1"><strong><span data-lang-key="overfittingRatio">过拟合比率</span>:</strong> <span id="overfittingRatioDisplay">-</span></p>
+                                                                <p class="mb-1"><strong><span data-lang-key="generalizationGap">泛化差距</span>:</strong> <span id="generalizationGapDisplay">-</span></p>
+                                                                <p class="mb-0"><strong><span data-lang-key="trainTestGap">训练-测试差距</span>:</strong> <span id="trainTestGapDisplay">-</span></p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <!-- 子模块9.3: 预测与可视化 (暂时隐藏) -->
+            <div class="row mb-4" id="predictionVisualizationSection" style="display: none;">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-warning text-white">
+                            <h5 class="mb-0"><i class="fas fa-chart-line"></i> <span data-lang-key="predictionVisualizationTitle">子模块9.3 - 预测与可视化</span></h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> <span data-lang-key="predictionVisualizationPlaceholder">预测与可视化功能正在开发中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+

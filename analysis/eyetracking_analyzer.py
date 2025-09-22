@@ -5,7 +5,6 @@ VR眼动数据分析器
 """
 import os
 import sys
-import cv2
 import math
 import json
 import numpy as np

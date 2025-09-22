@@ -6,10 +6,12 @@
 import os
 import sys
 import json
-import cv2
 import math
 import base64
 import webbrowser
+import platform
+import shutil
+from datetime import datetime
 from io import BytesIO
 import numpy as np
 import pandas as pd
@@ -51,6 +53,22 @@ class EnhancedWebVisualizer:
         """
         self.analyzer = EnhancedEyetrackingAnalyzer(config_file)
         self.config = self.analyzer.config
+        self.start_time = datetime.now()
+
+        # 跟踪系统集成功能的启用状态
+        self.integration_status = {
+            'rqa_analysis': {'enabled': False, 'error': None},
+            'event_analysis': {'enabled': False, 'error': None},
+            'mmse_analysis': {'enabled': False, 'error': None},
+            'real_data_integration': {'enabled': False, 'error': None},
+            'ml_prediction': {'enabled': False, 'error': None},
+            'rqa_pipeline': {'enabled': False, 'error': None},
+            'feature_extraction': {'enabled': False, 'error': None},
+            'module10_eye_index': {'enabled': False, 'error': None},
+            'module10_c_service': {'enabled': False, 'error': None},
+            'module10_b_training': {'enabled': False, 'error': None},
+            'module10_d_evaluation': {'enabled': False, 'error': None},
+        }
         
         # Flask应用设置
         self.app = Flask(__name__, 
@@ -90,8 +108,10 @@ class EnhancedWebVisualizer:
                 from rqa_api_extension import setup_rqa_integration
             
             setup_rqa_integration(self.app, self)
+            self.integration_status['rqa_analysis']['enabled'] = True
             print("✅ RQA分析功能已启用")
         except ImportError as e:
+            self.integration_status['rqa_analysis']['error'] = str(e)
             print(f"⚠️  RQA分析功能不可用: {e}")
         
         # 集成事件分析功能
@@ -104,8 +124,10 @@ class EnhancedWebVisualizer:
                 from event_api_extension import setup_event_analysis_integration
             
             setup_event_analysis_integration(self.app, self)
+            self.integration_status['event_analysis']['enabled'] = True
             print("✅ 事件分析功能已启用")
         except ImportError as e:
+            self.integration_status['event_analysis']['error'] = str(e)
             print(f"⚠️  事件分析功能不可用: {e}")
         
         # 集成MMSE对比分析功能
@@ -118,8 +140,10 @@ class EnhancedWebVisualizer:
                 from mmse_api_extension import register_mmse_routes
             
             register_mmse_routes(self.app)
+            self.integration_status['mmse_analysis']['enabled'] = True
             print("✅ MMSE对比分析功能已启用")
         except ImportError as e:
+            self.integration_status['mmse_analysis']['error'] = str(e)
             print(f"⚠️  MMSE对比分析功能不可用: {e}")
         
         # 集成真实数据整合功能
@@ -132,8 +156,10 @@ class EnhancedWebVisualizer:
                 from real_data_integration_api import register_real_data_routes
             
             register_real_data_routes(self.app)
+            self.integration_status['real_data_integration']['enabled'] = True
             print("✅ 真实数据整合功能已启用")
         except ImportError as e:
+            self.integration_status['real_data_integration']['error'] = str(e)
             print(f"⚠️  真实数据整合功能不可用: {e}")
         
         # 🆕 集成机器学习预测功能 (模块9)
@@ -146,8 +172,10 @@ class EnhancedWebVisualizer:
                 from ml_prediction_api import register_ml_prediction_routes
             
             register_ml_prediction_routes(self.app)
+            self.integration_status['ml_prediction']['enabled'] = True
             print("✅ 机器学习预测功能已启用 (模块9)")
         except ImportError as e:
+            self.integration_status['ml_prediction']['error'] = str(e)
             print(f"⚠️  机器学习预测功能不可用: {e}")
         
                 # 集成RQA分析流程功能
@@ -160,8 +188,10 @@ class EnhancedWebVisualizer:
                 from rqa_pipeline_api import rqa_pipeline_bp
 
             self.app.register_blueprint(rqa_pipeline_bp)
+            self.integration_status['rqa_pipeline']['enabled'] = True
             print("✅ RQA分析流程功能已启用")
         except ImportError as e:
+            self.integration_status['rqa_pipeline']['error'] = str(e)
             print(f"⚠️  RQA分析流程功能不可用: {e}")
 
         # 集成综合特征提取功能
@@ -174,8 +204,10 @@ class EnhancedWebVisualizer:
                 from feature_extraction_api import feature_extraction_bp
 
             self.app.register_blueprint(feature_extraction_bp)
+            self.integration_status['feature_extraction']['enabled'] = True
             print("✅ 综合特征提取功能已启用")
         except ImportError as e:
+            self.integration_status['feature_extraction']['error'] = str(e)
             print(f"⚠️  综合特征提取功能不可用: {e}")
         
         # 集成模块10 Eye-Index 综合评估功能
@@ -187,6 +219,7 @@ class EnhancedWebVisualizer:
                 from module10_eye_index.api import register_eye_index_routes
 
             register_eye_index_routes(self.app)
+            self.integration_status['module10_eye_index']['enabled'] = True
             
             # 添加模块10静态文件路由
             @self.app.route('/static/js/eye_index.js')
@@ -203,6 +236,7 @@ class EnhancedWebVisualizer:
             
             print("✅ 模块10 Eye-Index 综合评估功能已启用")
         except ImportError as e:
+            self.integration_status['module10_eye_index']['error'] = str(e)
             print(f"⚠️  模块10 Eye-Index 综合评估功能不可用: {e}")
         
         # 集成模块10-C 模型服务与管理API
@@ -231,10 +265,13 @@ class EnhancedWebVisualizer:
             # 初始化模型（激活best版本）
             activated_count = initialize_models()
             
+            self.integration_status['module10_c_service']['enabled'] = True
             print(f"✅ 模块10-C 模型服务API已启用 ({activated_count} 个模型激活)")
         except ImportError as e:
+            self.integration_status['module10_c_service']['error'] = str(e)
             print(f"⚠️  模块10-C 模型服务API不可用: {e}")
         except Exception as e:
+            self.integration_status['module10_c_service']['error'] = str(e)
             print(f"⚠️  模块10-C 初始化失败: {e}")
         
         # 集成模块10-B PyTorch训练引擎API
@@ -251,11 +288,14 @@ class EnhancedWebVisualizer:
 
             # 注册蓝图到 /api/m10b 路径前缀
             self.app.register_blueprint(m10b_bp)
-            
+            self.integration_status['module10_b_training']['enabled'] = True
+
             print("✅ 模块10-B PyTorch训练引擎API已启用")
         except ImportError as e:
+            self.integration_status['module10_b_training']['error'] = str(e)
             print(f"⚠️  模块10-B 训练引擎API不可用: {e}")
         except Exception as e:
+            self.integration_status['module10_b_training']['error'] = str(e)
             print(f"⚠️  模块10-B 初始化失败: {e}")
         
         # 集成模块10-D 模型性能评估API
@@ -272,11 +312,14 @@ class EnhancedWebVisualizer:
 
             # 注册蓝图到 /api/m10d 路径前缀
             self.app.register_blueprint(evaluation_bp, url_prefix="/api/m10d")
-            
+            self.integration_status['module10_d_evaluation']['enabled'] = True
+
             print("✅ 模块10-D 模型性能评估API已启用")
         except ImportError as e:
+            self.integration_status['module10_d_evaluation']['error'] = str(e)
             print(f"⚠️  模块10-D 性能评估API不可用: {e}")
         except Exception as e:
+            self.integration_status['module10_d_evaluation']['error'] = str(e)
             print(f"⚠️  模块10-D 初始化失败: {e}")
     
     def get_default_colors(self) -> Dict:
@@ -546,6 +589,24 @@ class EnhancedWebVisualizer:
                 return jsonify({'success': True, 'data': stats})
             except Exception as e:
                 return jsonify({'success': False, 'error': str(e)})
+
+        @self.app.route('/api/system/status')
+        def get_system_status():
+            """获取系统运行状态"""
+            try:
+                return jsonify(self.get_system_status_payload())
+            except Exception as e:
+                print(f"❌ 系统状态查询失败: {e}")
+                return jsonify({'success': False, 'error': str(e)}), 500
+
+        @self.app.route('/api/system/config')
+        def get_system_config():
+            """获取系统配置快照"""
+            try:
+                return jsonify(self.get_system_config_payload())
+            except Exception as e:
+                print(f"❌ 系统配置查询失败: {e}")
+                return jsonify({'success': False, 'error': str(e)}), 500
 
         @self.app.route('/static/modules/<path:filename>')
         def serve_module_file(filename):
@@ -834,14 +895,10 @@ class EnhancedWebVisualizer:
             img_path = os.path.join(background_dir, img_filename)
             
             if os.path.exists(img_path):
-                # 使用OpenCV加载图像
-                bgr_img = cv2.imread(img_path)
-                if bgr_img is not None:
-                    # 转换颜色格式
-                    rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
-                    # 转换为PIL图像，保持原始尺寸比例
-                    pil_img = Image.fromarray(rgb_img)
-                    return pil_img
+                with Image.open(img_path) as img:
+                    # 确保为RGB格式
+                    pil_img = img.convert('RGB')
+                return pil_img
                     
         except Exception as e:
             print(f"⚠️  无法加载背景图像: {e}")
@@ -2368,6 +2425,185 @@ class EnhancedWebVisualizer:
             import traceback
             print(f"📋 详细错误信息:\n{traceback.format_exc()}")
             return {'success': False, 'error': error_msg}
+
+    def _format_duration(self, total_seconds: int) -> str:
+        """将秒数格式化为可读的时长字符串"""
+        hours, remainder = divmod(max(int(total_seconds), 0), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours}h {minutes}m {seconds}s"
+
+    def _format_bytes(self, num_bytes: float) -> str:
+        """将字节数格式化为带单位的字符串"""
+        units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+        value = float(max(num_bytes, 0))
+        for unit in units:
+            if value < 1024 or unit == units[-1]:
+                return f"{value:.2f}{unit}"
+            value /= 1024.0
+        return f"{value:.2f}PB"
+
+    def _get_memory_usage(self) -> Optional[str]:
+        """获取当前进程的内存占用情况"""
+        try:
+            import psutil  # type: ignore
+
+            process = psutil.Process(os.getpid())
+            return self._format_bytes(process.memory_info().rss)
+        except ImportError:
+            try:
+                import resource  # type: ignore
+
+                usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                if platform.system() == 'Darwin':
+                    usage_bytes = float(usage)
+                else:
+                    usage_bytes = float(usage) * 1024.0
+                return self._format_bytes(usage_bytes)
+            except Exception:
+                return None
+        except Exception:
+            return None
+
+    def _get_disk_usage(self) -> Optional[Dict[str, str]]:
+        """获取当前工作目录的磁盘使用情况"""
+        try:
+            usage = shutil.disk_usage(os.getcwd())
+            return {
+                'total': self._format_bytes(usage.total),
+                'used': self._format_bytes(usage.used),
+                'free': self._format_bytes(usage.free)
+            }
+        except Exception:
+            return None
+
+    def _count_group_records(self, group_type: str) -> int:
+        """统计指定组的数据文件数量"""
+        data_sources = self.config.get("data_sources", {})
+        directory = data_sources.get(f"{group_type}_calibrated", "")
+        if not directory or not os.path.exists(directory):
+            return 0
+
+        count = 0
+        for _, _, files in os.walk(directory):
+            count += sum(1 for name in files if name.endswith('_calibrated.csv'))
+        return count
+
+    def get_system_status_payload(self) -> Dict:
+        """构建系统状态信息"""
+        uptime_seconds = int((datetime.now() - self.start_time).total_seconds())
+        group_counts = {gt: self._count_group_records(gt) for gt in ['control', 'mci', 'ad']}
+        mmse_group_counts = {group: len(scores) for group, scores in (self.mmse_scores or {}).items()}
+        mmse_total = sum(mmse_group_counts.values()) if mmse_group_counts else 0
+
+        services = {
+            'web_server': 'running',
+            'rqa_analysis': 'enabled' if self.integration_status['rqa_analysis']['enabled'] else 'unavailable',
+            'event_analysis': 'enabled' if self.integration_status['event_analysis']['enabled'] else 'unavailable',
+            'mmse_analysis': 'enabled' if self.integration_status['mmse_analysis']['enabled'] else 'unavailable',
+            'real_data_integration': 'enabled' if self.integration_status['real_data_integration']['enabled'] else 'unavailable',
+            'ml_prediction': 'enabled' if self.integration_status['ml_prediction']['enabled'] else 'unavailable',
+            'rqa_pipeline': 'enabled' if self.integration_status['rqa_pipeline']['enabled'] else 'unavailable',
+            'feature_extraction': 'enabled' if self.integration_status['feature_extraction']['enabled'] else 'unavailable',
+            'module10_eye_index': 'enabled' if self.integration_status['module10_eye_index']['enabled'] else 'unavailable',
+            'module10_c_service': 'enabled' if self.integration_status['module10_c_service']['enabled'] else 'unavailable',
+            'module10_b_training': 'enabled' if self.integration_status['module10_b_training']['enabled'] else 'unavailable',
+            'module10_d_evaluation': 'enabled' if self.integration_status['module10_d_evaluation']['enabled'] else 'unavailable',
+        }
+
+        system_info = {
+            'python_version': platform.python_version(),
+            'platform': platform.platform(),
+            'uptime_seconds': uptime_seconds,
+            'active_tasks': 0,
+        }
+
+        memory_usage = self._get_memory_usage()
+        if memory_usage:
+            system_info['memory_usage'] = memory_usage
+
+        disk_usage = self._get_disk_usage()
+        if disk_usage:
+            system_info['disk_usage'] = disk_usage
+
+        data_health = {
+            'group_records': group_counts,
+            'background_images': len(self.background_images),
+            'mmse_records': {
+                'total': mmse_total,
+                'by_group': mmse_group_counts
+            }
+        }
+
+        response = {
+            'success': True,
+            'status': 'healthy',
+            'uptime': self._format_duration(uptime_seconds),
+            'version': self.config.get('version', 'unknown'),
+            'services': services,
+            'data_health': data_health,
+            'system_info': system_info
+        }
+
+        feature_errors = {
+            key: info['error']
+            for key, info in self.integration_status.items()
+            if not info['enabled'] and info['error']
+        }
+        if feature_errors:
+            response['feature_errors'] = feature_errors
+
+        return convert_numpy_types(response)
+
+    def get_system_config_payload(self) -> Dict:
+        """构建系统配置快照"""
+        data_sources_config = self.config.get('data_sources', {})
+        group_counts = {gt: self._count_group_records(gt) for gt in ['control', 'mci', 'ad']}
+
+        data_sources = {}
+        for key, path in data_sources_config.items():
+            info = {
+                'path': path,
+                'exists': os.path.exists(path)
+            }
+            group_key = key.replace('_calibrated', '')
+            if group_key in group_counts:
+                info['file_count'] = group_counts[group_key]
+            data_sources[key] = info
+
+        background_cfg = self.config.get('background_images', {})
+        background_info = {
+            'base_path': background_cfg.get('base_path'),
+            'configured_files': background_cfg.get('files', {}),
+            'available_files': self.background_images,
+            'available_count': len(self.background_images)
+        }
+
+        config_payload = {
+            'success': True,
+            'config': {
+                'version': self.config.get('version', 'unknown'),
+                'data_sources': data_sources,
+                'background_images': background_info,
+                'ivt_parameters': self.config.get('ivt_parameters', {}),
+                'visualization_defaults': {
+                    'colors': {
+                        key: list(value) if isinstance(value, (tuple, list)) else value
+                        for key, value in self.colors.items()
+                    },
+                    'sizes': self.sizes,
+                },
+                'roi_definitions': {
+                    'count': len(self.analyzer.roi_definitions),
+                    'questions': list(self.analyzer.roi_definitions.keys())
+                },
+                'feature_flags': {
+                    key: status['enabled']
+                    for key, status in self.integration_status.items()
+                }
+            }
+        }
+
+        return convert_numpy_types(config_payload)
 
     def _load_background_images(self):
         """加载背景图片列表"""
